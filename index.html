@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElectroTech - Venta de Productos Electrónicos</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: white;
+            padding: 4rem 2rem;
+            margin-bottom: 2rem;
+            border-radius: 0.5rem;
+        }
+        .product-card {
+            transition: transform 0.2s;
+            height: 100%;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barra de Navegación -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-bolt text-warning"></i> ElectroTech</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link active" href="#">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#productos">Productos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#combos">Combos</a></li>
+                </ul>
+                <button class="btn btn-outline-warning position-relative" data-bs-toggle="offcanvas" data-bs-target="#carritoOffcanvas">
+                    <i class="fa-solid fa-cart-shopping"></i> Carrito
+                    <span id="contador-carrito" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <div class="container my-4">
+        <!-- Hero Section -->
+        <div class="hero-section text-center">
+            <h1 class="display-5 fw-bold">Tecnología y Alto Rendimiento</h1>
+            <p class="lead text-muted">Encontrá notebooks, celulares, periféricos y mucho más para tu día a día.</p>
+        </div>
+
+        <!-- Sección de Productos -->
+        <h2 id="productos" class="mb-4 text-secondary"><i class="fa-solid fa-laptop"></i> Catálogo de Productos</h2>
+        <div class="row row-cols-1 row-cols-md-3 g-4" id="lista-productos">
+            <!-- Los productos se cargan dinámicamente -->
+        </div>
+    </div>
+
+    <!-- Panel Lateral del Carrito (Offcanvas) -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="carritoOffcanvas">
+        <div class="offcanvas-header bg-dark text-white">
+            <h5 class="offcanvas-title"><i class="fa-solid fa-cart-shopping"></i> Tu Carrito de Compras</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column justify-content-between">
+            <div>
+                <ul id="items-carrito" class="list-group list-group-flush mb-3">
+                    <!-- Items agregados -->
+                </ul>
+            </div>
+            <div>
+                <hr>
+                <div class="d-flex justify-content-between fs-5 fw-bold mb-3">
+                    <span>Total:</span>
+                    <span id="total-carrito">$0.00</span>
+                </div>
+                <button class="btn btn-success w-100 py-2" onclick="finalizarCompra()">Proceder al Pago</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-0">&copy; 2026 ElectroTech. Proyecto de Base de Datos y Web.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Script de lógica de la tienda -->
+    <script>
+        // Productos basados exactamente en tu base de datos SQL
+        const productos = [
+            { id: 1, nombre: "Notebook Gamer", descripcion: "Notebook de alto rendimiento", marca: "Lenovo", precio: 1500000, stock: 10 },
+            { id: 2, nombre: "Celular Pro", descripcion: "Celular de alta gama", marca: "Samsung", precio: 900000, stock: 15 },
+            { id: 3, nombre: "Mouse Gamer", descripcion: "Mouse para gaming", marca: "Logitech", precio: 80000, stock: 30 },
+            { id: 4, nombre: "Monitor Profesional", descripcion: "Monitor de alto rendimiento", marca: "LG", precio: 500000, stock: 8 },
+            { id: 5, nombre: "Funda para celular", descripcion: "Funda protectora", marca: "Genérica", precio: 25000, stock: 50 }
+        ];
+
+        let carrito = [];
+
+        function cargarProductos() {
+            const contenedor = document.getElementById('lista-productos');
+            contenedor.innerHTML = '';
+            productos.forEach(p => {
+                contenedor.innerHTML += `
+                    <div class="col">
+                        <div class="card product-card h-100 shadow-sm">
+                            <div class="card-body d-flex flex-column">
+                                <span class="badge bg-secondary align-self-start mb-2">${p.marca}</span>
+                                <h5 class="card-title">${p.nombre}</h5>
+                                <p class="card-text text-muted small">${p.descripcion}</p>
+                                <div class="mt-auto">
+                                    <h4 class="text-primary fw-bold">$${p.precio.toLocaleString('es-AR')}</h4>
+                                    <p class="text-muted small mb-2">Stock disponible: ${p.stock}</p>
+                                    <button class="btn btn-dark w-100" onclick="agregarAlCarrito(${p.id})">
+                                        <i class="fa-solid fa-cart-plus"></i> Agregar al Carrito
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function agregarAlCarrito(id) {
+            const producto = productos.find(p => p.id === id);
+            const itemEnCarrito = carrito.find(item => item.id === id);
+            
+            if (itemEnCarrito) {
+                if (itemEnCarrito.cantidad < producto.stock) {
+                    itemEnCarrito.cantidad++;
+                } else {
+                    alert("No hay más stock disponible.");
+                    return;
+                }
+            } else {
+                carrito.push({ ...producto, cantidad: 1 });
+            }
+            actualizarCarrito();
+        }
+
+        function actualizarCarrito() {
+            const lista = document.getElementById('items-carrito');
+            const contador = document.getElementById('contador-carrito');
+            const totalSpan = document.getElementById('total-carrito');
+            
+            lista.innerHTML = '';
+            let total = 0;
+            let totalItems = 0;
+
+            carrito.forEach((item, index) => {
+                total += item.precio * item.cantidad;
+                totalItems += item.cantidad;
+                lista.innerHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="my-0">${item.nombre}</h6>
+                            <small class="text-muted">$${item.precio.toLocaleString('es-AR')} x ${item.cantidad}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarDelCarrito(${index})"><i class="fa-solid fa-trash"></i></button>
+                    </li>
+                `;
+            });
+
+            contador.innerText = totalItems;
+            totalSpan.innerText = `$${total.toLocaleString('es-AR')}`;
+        }
+
+        function eliminarDelCarrito(index) {
+            carrito.splice(index, 1);
+            actualizarCarrito();
+        }
+
+        function finalizarCompra() {
+            if (carrito.length === 0) {
+                alert("El carrito está vacío.");
+                return;
+            }
+            alert("¡Compra simulada con éxito! En el próximo paso conectaremos esto con tu base de datos.");
+            carrito = [];
+            actualizarCarrito();
+        }
+
+        // Inicializar catálogo al cargar la página
+        document.addEventListener("DOMContentLoaded", cargarProductos);
+    </script>
+</body>
+</html>
