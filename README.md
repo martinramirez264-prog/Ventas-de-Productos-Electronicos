@@ -1,4 +1,4 @@
-# Venta de Productos Electrónicos 🛒💻
+# Venta de Dispositivos Electrónicos 🛒💻
 
 Proyecto académico de desarrollo web y base de datos para una tienda de electrónica.
 
