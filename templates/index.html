@@ -62,8 +62,8 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -.02em; }
               repeating-linear-gradient(0deg, transparent 0 47px, rgba(255,255,255,.03) 47px 48px);
 }
 .hero > * { position: relative; z-index: 1; }
-.hero h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); max-width: 20ch; line-height: 1.15; }
-.hero p { color: #b8c7d1; max-width: 55ch; font-size: 1.1rem; }
+.hero h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); max-width: 16ch; line-height: 1.15; }
+.hero p { color: #b8c7d1; max-width: 48ch; font-size: 1.1rem; }
 .search { max-width: 480px; }
 .search .form-control { border: 0; padding: .8rem 1.2rem; font-weight: 500; font-size: 1rem; }
 .search .input-group-text { border: 0; background: #fff; color: var(--ink); }
@@ -96,27 +96,14 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -.02em; }
   transform: translateY(-4px);
   box-shadow: 0 12px 28px rgba(16,34,47,.12);
 }
-
 .product .thumb {
-  height: 180px;
-  width: 100%;
-  position: relative;
-  background: #ffffff;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  height: 150px;
+  display: grid;
+  place-items: center;
+  font-size: 3.5rem;
+  color: var(--volt);
+  background: #e3ecf6;
 }
-.product .thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform .3s ease;
-}
-.product:hover .thumb img {
-  transform: scale(1.05);
-}
-
 .product .body { padding: 1.25rem; display: flex; flex-direction: column; flex: 1; }
 .product .brand-tag { font-size: .8rem; font-weight: 800; color: #55697a; text-transform: uppercase; letter-spacing: .04em; }
 .stock-ok { color: var(--ok); }
@@ -185,17 +172,17 @@ footer { background: var(--ink); color: #b8c7d1; margin-top: auto; }
 
 <main class="container">
   <section class="hero">
-    <h1>Tecnología completa para trabajar, jugar y crear</h1>
-    <p class="mt-3 mb-4">Notebooks, celulares y todos los accesorios indispensables incluidos para mejorar tu experiencia de compra.</p>
+    <h1>Tecnología para trabajar, jugar y crear</h1>
+    <p class="mt-3 mb-4">Notebooks, celulares, monitores y periféricos con garantía oficial y envío a todo el país.</p>
     <div class="input-group search">
       <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
-      <input id="buscador" type="search" class="form-control" placeholder="Buscar por nombre, marca o accesorio..." aria-label="Buscar productos">
+      <input id="buscador" type="search" class="form-control" placeholder="Buscar por nombre o marca..." aria-label="Buscar productos">
     </div>
   </section>
 
   <section id="productos" class="mb-5">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-      <h2 class="h3 mb-0">Catálogo Individual</h2>
+      <h2 class="h3 mb-0">Catálogo</h2>
       <select id="orden" class="form-select w-auto" aria-label="Ordenar productos">
         <option value="">Ordenar por</option>
         <option value="asc">Precio: menor a mayor</option>
@@ -209,7 +196,7 @@ footer { background: var(--ink); color: #b8c7d1; margin-top: auto; }
   </section>
 
   <section id="combos" class="mb-5">
-    <h2 class="h3 mb-3">Kits & Combos Promocionales</h2>
+    <h2 class="h3 mb-3">Combos Promocionales</h2>
     <div class="row g-4" id="lista-combos"></div>
   </section>
 </main>
@@ -277,86 +264,17 @@ const $ = id => document.getElementById(id);
 const money = n => '$' + n.toLocaleString('es-AR');
 const prod = id => productos.find(p => p.id === id);
 
-// Categorías
-let categorias = {
-  1: { n: 'Notebooks', i: 'fa-laptop' },
-  2: { n: 'Celulares', i: 'fa-mobile-screen' },
-  3: { n: 'Periféricos', i: 'fa-headphones' },
-  4: { n: 'Monitores', i: 'fa-desktop' },
-  5: { n: 'Accesorios', i: 'fa-plug' }
-};
-
-// Rutas locales EXACTAS sacadas de tu árbol de archivos en Git (respetando carpetas, mayúsculas y tildes)
-const imagenesLocales = {
-  1: "/img/NOTEBOOKS/Notebook Gamer.jpg",
-  13: "/img/NOTEBOOKS/Notebook HP 15.jpg",
-  14: "/img/NOTEBOOKS/MacBook Air M2.jpg",
-  2: "/img/CELULARES/Celular Redmi A3.jpg",
-  17: "/img/CELULARES/Celular Samsung Galaxy A55.jpg",
-  18: "/img/CELULARES/Celular Motorola Moto G84.jpg",
-  19: "/img/CELULARES/Celular iPhone 15 128GB.jpg",
-  3: "/img/MONITORES/Monitor Profesional.jpg",
-  15: "/img/MONITORES/Monitor Gaming 144Hz.jpg",
-  16: "/img/MONITORES/Monitor UltraWide 34.jpg",
-  4: "/img/ACCESORIOS/Cargador Carga Rápida 33W.jpg",
-  5: "/img/ACCESORIOS/Funda Protectora Antigolpes.jpg",
-  6: "/img/ACCESORIOS/Vidrio Templado 9D.jpg",
-  7: "/img/ACCESORIOS/Tarjeta MicroSD 128GB.jpg",
-  8: "/img/ACCESORIOS/Batería externa de 10000 mAh.jpg",
-  9: "/img/PERIFÉRICOS/Auriculares Inalámbricos TWS.jpg",
-  10: "/img/PERIFÉRICOS/Auriculares de Casco (Vincha).jpg",
-  11: "/img/PERIFÉRICOS/Mouse Gamer RGB.jpg",
-  12: "/img/PERIFÉRICOS/Mouse Bluetooth Ergonomico.jpg"
-};
-
-// Respaldo Web en HD por si el navegador o servidor falla al leer las tildes en local
-const imagenesRespaldoWeb = {
-  4: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&auto=format&fit=crop&q=80",
-  5: "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=600&auto=format&fit=crop&q=80",
-  8: "https://images.unsplash.com/photo-1609592424109-dd9892f1b177?w=600&auto=format&fit=crop&q=80",
-  9: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&auto=format&fit=crop&q=80",
-  10: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80",
-  11: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=600&auto=format&fit=crop&q=80",
-  12: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80"
-};
-
+// Datos de respaldo estáticos (se reemplazan si la API de Flask responde)
+let categorias = {1:{n:'Notebooks',i:'fa-laptop'},2:{n:'Celulares',i:'fa-mobile-screen'},3:{n:'Periféricos',i:'fa-computer-mouse'},4:{n:'Monitores',i:'fa-desktop'},5:{n:'Accesorios',i:'fa-plug'}};
 let productos = [
-  { id: 1, nombre: "Notebook Gamer", descripcion: "Notebook de alto rendimiento para trabajo y gaming", marca: "Lenovo", precio: 1500000, stock: 10, garantia: 12, cat: 1, img: imagenesLocales[1] },
-  { id: 13, nombre: "Notebook HP 15", descripcion: "Laptop ultraligera Intel Core i5 16GB RAM SSD 512GB", marca: "HP", precio: 1150000, stock: 12, garantia: 12, cat: 1, img: imagenesLocales[13] },
-  { id: 14, nombre: "MacBook Air M2", descripcion: "Laptop Apple Chip M2 pantalla Retina 13.6 pulgadas", marca: "Apple", precio: 2100000, stock: 6, garantia: 12, cat: 1, img: imagenesLocales[14] },
-  { id: 2, nombre: "Celular Redmi A3", descripcion: "Smartphone libre con pantalla fluida de 90Hz", marca: "Xiaomi", precio: 900000, stock: 15, garantia: 12, cat: 2, img: imagenesLocales[2] },
-  { id: 17, nombre: "Samsung Galaxy A55", descripcion: "Smartphone 5G pantalla Super AMOLED 120Hz 128GB", marca: "Samsung", precio: 750000, stock: 12, garantia: 12, cat: 2, img: imagenesLocales[17] },
-  { id: 18, nombre: "Motorola Moto G84", descripcion: "Celular libre pantalla OLED 256GB RAM 8GB", marca: "Motorola", precio: 520000, stock: 15, garantia: 12, cat: 2, img: imagenesLocales[18] },
-  { id: 19, nombre: "iPhone 15 128GB", descripcion: "Pantalla Super Retina XDR Chip A16 Bionic cámara 48MP", marca: "Apple", precio: 1850000, stock: 5, garantia: 12, cat: 2, img: imagenesLocales[19] },
-  { id: 3, nombre: "Monitor Profesional", descripcion: "Monitor IPS 24 pulgadas Full HD", marca: "LG", precio: 500000, stock: 8, garantia: 12, cat: 4, img: imagenesLocales[3] },
-  { id: 15, nombre: "Monitor Gaming 144Hz", descripcion: "Monitor curvo 27 pulgadas Full HD 1ms Freesync", marca: "Samsung", precio: 680000, stock: 10, garantia: 12, cat: 4, img: imagenesLocales[15] },
-  { id: 16, nombre: "Monitor UltraWide 34\"", descripcion: "Monitor panorámico 2K para productividad y edición", marca: "LG", precio: 920000, stock: 5, garantia: 12, cat: 4, img: imagenesLocales[16] },
-  { id: 4, nombre: "Cargador Carga Rápida 33W", descripcion: "Cargador de pared de alta velocidad Tipo-C", marca: "Xiaomi", precio: 35000, stock: 40, garantia: 6, cat: 5, img: imagenesLocales[4] },
-  { id: 5, nombre: "Funda Protectora Antigolpes", descripcion: "Funda de silicona reforzada en esquinas", marca: "Genérica", precio: 25000, stock: 50, garantia: 6, cat: 5, img: imagenesLocales[5] },
-  { id: 6, nombre: "Vidrio Templado 9D", descripcion: "Protector de pantalla ultra resistente anti-rayaduras", marca: "Genérica", precio: 8000, stock: 100, garantia: 3, cat: 5, img: imagenesLocales[6] },
-  { id: 7, nombre: "Tarjeta MicroSD 128GB", descripcion: "Almacenamiento de alta velocidad Clase 10 Ultra", marca: "SanDisk", precio: 22000, stock: 60, garantia: 12, cat: 5, img: imagenesLocales[7] },
-  { id: 8, nombre: "Batería externa de 10000 mAh", descripcion: "Batería portátil de carga rápida doble USB", marca: "Redmi", precio: 42000, stock: 30, garantia: 6, cat: 5, img: imagenesLocales[8] },
-  { id: 9, nombre: "Auriculares Inalámbricos TWS", descripcion: "Auriculares Bluetooth 5.3 con estuche de carga", marca: "Xiaomi", precio: 45000, stock: 35, garantia: 12, cat: 3, img: imagenesLocales[9] },
-  { id: 10, nombre: "Auriculares de Casco (Vincha)", descripcion: "Auriculares Bluetooth con almohadillas acolchadas", marca: "Logitech", precio: 75000, stock: 20, garantia: 12, cat: 3, img: imagenesLocales[10] },
-  { id: 11, nombre: "Mouse Gamer RGB", descripcion: "Mouse óptico de alta precisión con cable", marca: "Logitech", precio: 80000, stock: 30, garantia: 12, cat: 3, img: imagenesLocales[11] },
-  { id: 12, nombre: "Mouse Bluetooth Ergonómico", descripcion: "Mouse inalámbrico silencioso para laptop", marca: "Logitech", precio: 38000, stock: 45, garantia: 12, cat: 3, img: imagenesLocales[12] }
+  {id:1,nombre:"Notebook Gamer",descripcion:"Notebook de alto rendimiento",marca:"Lenovo",precio:1500000,stock:10,garantia:12,cat:1},
+  {id:2,nombre:"Celular Pro",descripcion:"Celular de alta gama",marca:"Samsung",precio:900000,stock:15,garantia:12,cat:2},
+  {id:3,nombre:"Mouse Gamer",descripcion:"Mouse para gaming",marca:"Logitech",precio:80000,stock:30,garantia:12,cat:3},
+  {id:4,nombre:"Monitor Profesional",descripcion:"Monitor de alto rendimiento",marca:"LG",precio:500000,stock:8,garantia:12,cat:4},
+  {id:5,nombre:"Funda para celular",descripcion:"Funda protectora",marca:"Genérica",precio:25000,stock:50,garantia:6,cat:5}
 ];
-
 let combos = [
-  {
-    id: 1,
-    nombre: "Kit Redmi A3 Full Pack",
-    descripcion: "¡Experiencia completa! Incluye Celular Redmi A3 + Cargador Rápido 33W + Funda + Vidrio Templado + MicroSD 128GB + Batería externa de 10000 mAh.",
-    precio: 980000,
-    items: [{ p: 2, c: 1 }, { p: 4, c: 1 }, { p: 5, c: 1 }, { p: 6, c: 1 }, { p: 7, c: 1 }, { p: 8, c: 1 }]
-  },
-  {
-    id: 2,
-    nombre: "Kit Notebook Gamer Completo",
-    descripcion: "Notebook Gamer + Cargador + Auriculares de Casco + Mouse Bluetooth inalámbrico con descuento.",
-    precio: 1580000,
-    items: [{ p: 1, c: 1 }, { p: 10, c: 1 }, { p: 12, c: 1 }]
-  }
+  {id:1,nombre:"Kit Notebook Completo",descripcion:"Notebook + Mouse Gamer + Funda protectora.",precio:1605000,items:[{p:1,c:1},{p:3,c:1},{p:5,c:1}]}
 ];
 
 let carrito = [];
@@ -384,21 +302,15 @@ async function cargarDatosBD() {
       const combData = await resComb.json();
 
       if (prodData.length > 0) {
-        const iconos = ['fa-laptop', 'fa-mobile-screen', 'fa-headphones', 'fa-desktop', 'fa-plug'];
+        const iconos = ['fa-laptop', 'fa-mobile-screen', 'fa-computer-mouse', 'fa-desktop', 'fa-plug'];
         categorias = {};
         catsData.forEach((c, i) => { categorias[c.id] = { n: c.nombre, i: iconos[i % iconos.length] }; });
-        
-        productos = prodData.map(pBD => {
-          return {
-            ...pBD,
-            img: (pBD.img && pBD.img.trim()) ? pBD.img : imagenesLocales[pBD.id]
-          };
-        });
+        productos = prodData;
         combos = combData;
       }
     }
   } catch(e) {
-    console.log("Servidor MySQL no alcanzado, usando catálogo local.");
+    console.log("Servidor MySQL no alcanzado, utilizando catálogo de respaldo.");
   } finally {
     renderFiltros();
     renderCarrito();
@@ -424,7 +336,7 @@ function renderFiltros() {
 function renderProductos() {
   let lista = productos.filter(p =>
     (!filtro.cat || p.cat === filtro.cat) &&
-    (p.nombre + ' ' + p.marca + ' ' + p.descripcion).toLowerCase().includes(filtro.texto));
+    (p.nombre + ' ' + p.marca).toLowerCase().includes(filtro.texto));
   
   if (filtro.orden === 'asc') lista.sort((a, b) => a.precio - b.precio);
   if (filtro.orden === 'desc') lista.sort((a, b) => b.precio - a.precio);
@@ -436,13 +348,9 @@ function renderProductos() {
     const estado = p.stock === 0 ? ['stock-out', 'Sin stock'] : libre <= 0 ? ['stock-low', 'Agotado en carrito'] :
                    p.stock <= 10 ? ['stock-low', `¡Quedan ${libre} unidades!`] : ['stock-ok', 'En stock'];
     const catObj = categorias[p.cat] || { i: 'fa-box', n: 'Producto' };
-    const rutaImg = p.img || imagenesLocales[p.id];
-    const webFallback = imagenesRespaldoWeb[p.id] || "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80";
 
     return `<div class="col"><article class="product">
-      <div class="thumb" aria-hidden="true">
-        <img src="${encodeURI(rutaImg)}" alt="${p.nombre}" onerror="this.onerror=null; this.src='${webFallback}';">
-      </div>
+      <div class="thumb" aria-hidden="true"><i class="fa-solid ${catObj.i}"></i></div>
       <div class="body">
         <span class="brand-tag">${p.marca} · ${catObj.n}</span>
         <h3 class="h5 mt-1">${p.nombre}</h3>
@@ -480,7 +388,7 @@ function renderCombos() {
         const p = prod(i.p);
         if (!p) return '';
         const catObj = categorias[p.cat] || { i: 'fa-box' };
-        return `<li><i class="fa-solid ${catObj.i || 'fa-box'} text-primary me-2"></i>${i.c} × ${p.nombre}</li>`;
+        return `<li><i class="fa-solid ${catObj.i} text-primary me-2"></i>${i.c} × ${p.nombre}</li>`;
       }).join('')}</ul>
       <div class="d-flex align-items-center justify-content-between pt-2 border-top">
         <div><div class="price fs-4">${money(c.precio)}</div>${ahorro > 0 ? `<small class="text-secondary text-decoration-line-through">${money(suma)}</small>` : ''}</div>
