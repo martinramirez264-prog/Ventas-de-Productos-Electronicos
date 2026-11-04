@@ -2,17 +2,19 @@ import os
 from flask import Flask, render_template, jsonify, request
 import mysql.connector
 
-# Obtener la ruta absoluta de la carpeta donde está app.py
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 
+# Leemos las credenciales desde variables de entorno de Vercel
+# Si no existen, usa tus credenciales de Aiven o localhost de respaldo
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',          # Modificá por tu usuario de MySQL
-    'password': '',          # Modificá por tu contraseña de MySQL
-    'database': 'venta_productos_electronicos'
+    'host': os.getenv('MYSQL_HOST', 'localhost'),
+    'user': os.getenv('MYSQL_USER', 'root'),
+    'password': os.getenv('MYSQL_PASSWORD', ''),
+    'database': os.getenv('MYSQL_DATABASE', 'venta_productos_electronicos'),
+    'port': int(os.getenv('MYSQL_PORT', 3306))
 }
 
 def get_db_connection():
@@ -24,55 +26,64 @@ def index():
 
 @app.route('/api/categorias', methods=['GET'])
 def get_categorias():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id_categoria AS id, nombre FROM categorias")
-    categorias = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(categorias)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id_categoria AS id, nombre FROM categorias")
+        categorias = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(categorias)
+    except Exception as e:
+        return jsonify([]), 200  # Retorna lista vacía si falla la BD para no tirar 500
 
 @app.route('/api/productos', methods=['GET'])
 def get_productos():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    query = """
-        SELECT 
-            id_producto AS id, 
-            nombre, 
-            descripcion, 
-            marca, 
-            precio, 
-            stock, 
-            garantia_meses AS garantia, 
-            id_categoria AS cat 
-        FROM productos
-    """
-    cursor.execute(query)
-    productos = cursor.fetchall()
-    for p in productos:
-        p['precio'] = float(p['precio'])
-    cursor.close()
-    conn.close()
-    return jsonify(productos)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        query = """
+            SELECT 
+                id_producto AS id, 
+                nombre, 
+                descripcion, 
+                marca, 
+                precio, 
+                stock, 
+                garantia_meses AS garantia, 
+                id_categoria AS cat 
+            FROM productos
+        """
+        cursor.execute(query)
+        productos = cursor.fetchall()
+        for p in productos:
+            p['precio'] = float(p['precio'])
+        cursor.close()
+        conn.close()
+        return jsonify(productos)
+    except Exception as e:
+        return jsonify([]), 200
 
 @app.route('/api/combos', methods=['GET'])
 def get_combos():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id_combo AS id, nombre, descripcion, precio FROM combos")
-    combos = cursor.fetchall()
-    for c in combos:
-        c['precio'] = float(c['precio'])
-        cursor.execute("""
-            SELECT id_producto AS p, cantidad AS c 
-            FROM detalle_combos 
-            WHERE id_combo = %s
-        """, (c['id'],))
-        c['items'] = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(combos)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id_combo AS id, nombre, descripcion, precio FROM combos")
+        combos = cursor.fetchall()
+        for c in combos:
+            c['precio'] = float(c['precio'])
+            cursor.execute("""
+                SELECT id_producto AS p, cantidad AS c 
+                FROM detalle_combos 
+                WHERE id_combo = %s
+            """, (c['id'],))
+            c['items'] = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(combos)
+    except Exception as e:
+        return jsonify([]), 200
 
 @app.route('/api/ventas', methods=['POST'])
 def registrar_venta():
@@ -83,10 +94,10 @@ def registrar_venta():
     pago = data.get('pago', {})
     envio = data.get('envio', {})
 
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
         cursor.execute("SELECT id_cliente FROM clientes WHERE email = %s", (cliente['email'],))
         cliente_existente = cursor.fetchone()
 
@@ -137,14 +148,12 @@ def registrar_venta():
         """, (id_venta, nro_seguimiento, envio.get('direccion_envio', '')))
 
         conn.commit()
+        cursor.close()
+        conn.close()
         return jsonify({'success': True, 'id_venta': id_venta, 'numero_seguimiento': nro_seguimiento}), 201
 
     except Exception as e:
-        conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True)
