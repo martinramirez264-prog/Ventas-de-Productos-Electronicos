@@ -1,14 +1,13 @@
 import os
 from flask import Flask, render_template, jsonify, request
-import mysql.connector
 
+# Configuración de carpetas con rutas absolutas para Vercel
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
 
-app = Flask(__name__, template_folder=TEMPLATES_DIR)
+app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=BASE_DIR)
 
-# Leemos las credenciales desde variables de entorno de Vercel
-# Si no existen, usa tus credenciales de Aiven o localhost de respaldo
+# Configuración de credenciales de MySQL (Variables de Entorno)
 DB_CONFIG = {
     'host': os.getenv('MYSQL_HOST', 'localhost'),
     'user': os.getenv('MYSQL_USER', 'root'),
@@ -18,6 +17,7 @@ DB_CONFIG = {
 }
 
 def get_db_connection():
+    import mysql.connector
     return mysql.connector.connect(**DB_CONFIG)
 
 @app.route('/')
@@ -35,7 +35,7 @@ def get_categorias():
         conn.close()
         return jsonify(categorias)
     except Exception as e:
-        return jsonify([]), 200  # Retorna lista vacía si falla la BD para no tirar 500
+        return jsonify([]), 200
 
 @app.route('/api/productos', methods=['GET'])
 def get_productos():
