@@ -1,12 +1,15 @@
 import os
+import sys
 from flask import Flask, render_template, jsonify, request
 
-# Agregamos el directorio raíz para importar plantillas sin importar desde dónde se ejecute la Serverless Function
+# Configuración de carpetas con rutas absolutas para Vercel Serverless
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
 TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=BASE_DIR)
 
+# Configuración de credenciales de MySQL (Variables de Entorno)
 DB_CONFIG = {
     'host': os.getenv('MYSQL_HOST', 'localhost'),
     'user': os.getenv('MYSQL_USER', 'root'),
