@@ -378,9 +378,11 @@ async function cargarDatosBD() {
         catsData.forEach((c, i) => { categorias[c.id] = { n: c.nombre, i: iconos[i % iconos.length] }; });
         
         productos = prodData.map(pBD => {
+          // Forzamos el uso de la imagen HD online si la URL de la base de datos no empieza con http
+          const urlValida = pBD.img && typeof pBD.img === 'string' && pBD.img.trim().startsWith('http');
           return {
             ...pBD,
-            img: (pBD.img && pBD.img.trim().startsWith('http')) ? pBD.img : imagenesRespaldoWeb[pBD.id]
+            img: urlValida ? pBD.img.trim() : (imagenesRespaldoWeb[pBD.id] || "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80")
           };
         });
         combos = combData;
@@ -426,8 +428,9 @@ function renderProductos() {
                    p.stock <= 10 ? ['stock-low', `¡Quedan ${libre} unidades!`] : ['stock-ok', 'En stock'];
     const catObj = categorias[p.cat] || { i: 'fa-box', n: 'Producto' };
     
-    // Apuntamos 100% directo a la URL Web HD sin solicitar nada local
-    const rutaImg = (p.img && p.img.trim().startsWith('http')) ? p.img : (imagenesRespaldoWeb[p.id] || "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80");
+    // Verificación final de imagen antes del renderizado
+    const esUrlWeb = p.img && typeof p.img === 'string' && p.img.trim().startsWith('http');
+    const rutaImg = esUrlWeb ? p.img.trim() : (imagenesRespaldoWeb[p.id] || "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80");
 
     return `<div class="col"><article class="product">
       <div class="thumb" aria-hidden="true">
