@@ -286,36 +286,27 @@ let categorias = {
   5: { n: 'Accesorios', i: 'fa-plug' }
 };
 
-// Rutas locales referenciadas desde la carpeta raíz static/img
+// URLs Web en HD directo (Resuelven 100% las imagenes en Vercel)
 const imagenesRespaldoWeb = {
-  // Notebooks
-  1: "/img/NOTEBOOKS/Notebook Gamer.jpg",
-  2: "/img/NOTEBOOKS/Notebook HP 15.jpg",
-  3: "/img/NOTEBOOKS/MacBook Air M2.jpg",
-
-  // Celulares
-  4: "/img/Celulares/Celular Redmi A3.jpg",
-  5: "/img/Celulares/Celular Samsung Galaxy A55.jpg",
-  6: "/img/Celulares/Celular Motorola Moto G84.jpg",
-  7: "/img/Celulares/Celular iPhone 15 128GB.jpg",
-
-  // Monitores
-  8: "/img/MONITORES/Monitor Profesional.jpg",
-  9: "/img/MONITORES/Monitor Gaming 144Hz.jpg",
-  10: "/img/MONITORES/Monitor UltraWide 34.jpg",
-
-  // Periféricos
-  11: "/img/PERIFERICOS/Auriculares Inalámbricos TWS.jpg",
-  12: "/img/PERIFERICOS/Auriculares de Casco (Vincha).jpg",
-  13: "/img/PERIFERICOS/Mouse Gamer RGB.jpg",
-  14: "/img/PERIFERICOS/Mouse Bluetooth Ergonómico.jpg",
-
-  // Accesorios
-  15: "/img/ACCESORIOS/Cargador Carga Rápida 33W.jpg",
-  16: "/img/ACCESORIOS/Funda Protectora Antigolpes.jpg",
-  17: "/img/ACCESORIOS/Vidrio Templado 9D.jpg",
-  18: "/img/ACCESORIOS/Tarjeta MicroSD 128GB.jpg",
-  19: "/img/ACCESORIOS/Bateria externa de 10000 mah.jpg"
+  1: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600&auto=format&fit=crop&q=80",
+  2: "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&auto=format&fit=crop&q=80",
+  3: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop&q=80",
+  4: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=600&auto=format&fit=crop&q=80",
+  5: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=600&auto=format&fit=crop&q=80",
+  6: "https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=600&auto=format&fit=crop&q=80",
+  7: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600&auto=format&fit=crop&q=80",
+  8: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600&auto=format&fit=crop&q=80",
+  9: "https://images.unsplash.com/photo-1551645120-d70bfe84c826?w=600&auto=format&fit=crop&q=80",
+  10: "https://images.unsplash.com/photo-1547082299-de196ea013d6?w=600&auto=format&fit=crop&q=80",
+  11: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&auto=format&fit=crop&q=80",
+  12: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80",
+  13: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=600&auto=format&fit=crop&q=80",
+  14: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80",
+  15: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&auto=format&fit=crop&q=80",
+  16: "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=600&auto=format&fit=crop&q=80",
+  17: "https://images.unsplash.com/photo-1605236453806-6ff36851218e?w=600&auto=format&fit=crop&q=80",
+  18: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=600&auto=format&fit=crop&q=80",
+  19: "https://images.unsplash.com/photo-1609592424109-dd9892f1b177?w=600&auto=format&fit=crop&q=80"
 };
 
 let productos = [
@@ -387,7 +378,8 @@ async function cargarDatosBD() {
         catsData.forEach((c, i) => { categorias[c.id] = { n: c.nombre, i: iconos[i % iconos.length] }; });
         
         productos = prodData.map(pBD => {
-          const esUrlValida = pBD.img && typeof pBD.img === 'string' && pBD.img.trim().startsWith('http');
+          // Si la URL viene de la BD pero apunta a una ruta local "/img/...", la reemplazamos forzosamente por la URL HD
+          const esUrlWebValida = pBD.img && typeof pBD.img === 'string' && pBD.img.trim().startsWith('http');
           return {
             ...pBD,
             img: esUrlValida ? pBD.img.trim() : (imagenesRespaldoWeb[pBD.id] || "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80")
@@ -436,12 +428,13 @@ function renderProductos() {
                    p.stock <= 10 ? ['stock-low', `¡Quedan ${libre} unidades!`] : ['stock-ok', 'En stock'];
     const catObj = categorias[p.cat] || { i: 'fa-box', n: 'Producto' };
     
-    const esUrlWeb = p.img && typeof p.img === 'string' && p.img.trim().startsWith('http');
-    const rutaImg = esUrlWeb ? p.img.trim() : (imagenesRespaldoWeb[p.id] || "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80");
+    // Garantizamos que nunca intente cargar rutas locales /img/...
+    const esUrlWebValida = p.img && typeof p.img === 'string' && p.img.trim().startsWith('http');
+    const rutaImg = esUrlWebValida ? p.img.trim() : (imagenesRespaldoWeb[p.id] || "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80");
 
     return `<div class="col"><article class="product">
       <div class="thumb" aria-hidden="true">
-        <img src="${rutaImg}" alt="${p.nombre}">
+        <img src="${encodeURI(rutaImg)}" alt="${p.nombre}">
       </div>
       <div class="body">
         <span class="brand-tag">${p.marca} · ${catObj.n}</span>
