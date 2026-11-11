@@ -5,7 +5,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
 IMG_DIR = os.path.join(BASE_DIR, 'img')
 
-app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=IMG_DIR)
+app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=IMG_DIR, static_url_path='/img')
 
 DB_CONFIG = {
     'host': os.getenv('MYSQL_HOST', 'localhost'),
@@ -27,7 +27,6 @@ def get_db_connection():
 def index():
     return render_template('index.html')
 
-# ESTA RUTA SIRVE TUS IMÁGENES LOCALES DESDE LA CARPETA IMG EN VERCEL
 @app.route('/img/<path:filename>')
 def servir_imagen(filename):
     return send_from_directory(IMG_DIR, filename)
