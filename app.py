@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_from_directory
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
@@ -26,6 +26,11 @@ def get_db_connection():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+# Ruta explícita para servir las imágenes de la carpeta img sin errores 404 en Vercel
+@app.route('/img/<path:filename>')
+def servir_imagen(filename):
+    return send_from_directory(STATIC_DIR, filename)
 
 @app.route('/api/categorias', methods=['GET'])
 def get_categorias():
