@@ -3,9 +3,9 @@ from flask import Flask, render_template, jsonify, request, send_from_directory
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
-STATIC_DIR = os.path.join(BASE_DIR, 'img')
+IMG_DIR = os.path.join(BASE_DIR, 'img')
 
-app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR, static_url_path='/img')
+app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=IMG_DIR)
 
 DB_CONFIG = {
     'host': os.getenv('MYSQL_HOST', 'localhost'),
@@ -27,10 +27,10 @@ def get_db_connection():
 def index():
     return render_template('index.html')
 
-# Ruta explícita para servir las imágenes de la carpeta img sin errores 404 en Vercel
+# ESTA RUTA SIRVE TUS IMÁGENES LOCALES DESDE LA CARPETA IMG EN VERCEL
 @app.route('/img/<path:filename>')
 def servir_imagen(filename):
-    return send_from_directory(STATIC_DIR, filename)
+    return send_from_directory(IMG_DIR, filename)
 
 @app.route('/api/categorias', methods=['GET'])
 def get_categorias():
@@ -44,7 +44,7 @@ def get_categorias():
         cursor.close()
         conn.close()
         return jsonify(categorias)
-    except Exception as e:
+    except Exception:
         if conn:
             try: conn.close()
             except Exception: pass
@@ -76,7 +76,7 @@ def get_productos():
         cursor.close()
         conn.close()
         return jsonify(productos)
-    except Exception as e:
+    except Exception:
         if conn:
             try: conn.close()
             except Exception: pass
@@ -102,7 +102,7 @@ def get_combos():
         cursor.close()
         conn.close()
         return jsonify(combos)
-    except Exception as e:
+    except Exception:
         if conn:
             try: conn.close()
             except Exception: pass
@@ -124,7 +124,6 @@ def registrar_venta():
 
     try:
         cursor = conn.cursor(dictionary=True)
-
         cursor.execute("SELECT id_cliente FROM clientes WHERE email = %s", (cliente.get('email'),))
         cliente_existente = cursor.fetchone()
 
@@ -179,7 +178,7 @@ def registrar_venta():
         conn.close()
         return jsonify({'success': True, 'id_venta': id_venta, 'numero_seguimiento': nro_seguimiento}), 201
 
-    except Exception as e:
+    except Exception:
         if conn:
             try: conn.close()
             except Exception: pass
