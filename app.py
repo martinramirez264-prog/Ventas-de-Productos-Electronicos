@@ -27,6 +27,7 @@ def get_db_connection():
 def index():
     return render_template('index.html')
 
+# Servir imágenes locales directamente desde la carpeta img
 @app.route('/img/<path:filename>')
 def servir_imagen(filename):
     return send_from_directory(IMG_DIR, filename)
@@ -43,7 +44,7 @@ def get_categorias():
         cursor.close()
         conn.close()
         return jsonify(categorias)
-    except Exception:
+    except Exception as e:
         if conn:
             try: conn.close()
             except Exception: pass
@@ -75,7 +76,7 @@ def get_productos():
         cursor.close()
         conn.close()
         return jsonify(productos)
-    except Exception:
+    except Exception as e:
         if conn:
             try: conn.close()
             except Exception: pass
@@ -101,7 +102,7 @@ def get_combos():
         cursor.close()
         conn.close()
         return jsonify(combos)
-    except Exception:
+    except Exception as e:
         if conn:
             try: conn.close()
             except Exception: pass
@@ -123,6 +124,7 @@ def registrar_venta():
 
     try:
         cursor = conn.cursor(dictionary=True)
+
         cursor.execute("SELECT id_cliente FROM clientes WHERE email = %s", (cliente.get('email'),))
         cliente_existente = cursor.fetchone()
 
@@ -177,7 +179,7 @@ def registrar_venta():
         conn.close()
         return jsonify({'success': True, 'id_venta': id_venta, 'numero_seguimiento': nro_seguimiento}), 201
 
-    except Exception:
+    except Exception as e:
         if conn:
             try: conn.close()
             except Exception: pass
