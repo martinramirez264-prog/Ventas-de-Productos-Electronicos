@@ -521,7 +521,8 @@ function agregar(tipo, id) {
 }
 
 function cambiarCantidad(idx, delta) {
-  const l.cantidad += delta;
+  const l = carrito[idx];
+  l.cantidad += delta;
   if (l.cantidad <= 0) { carrito.splice(idx, 1); }
   else if (!productos.every(p => usado(p.id) <= p.stock)) { l.cantidad -= delta; toast('No hay más stock disponible.'); }
   renderCarrito();
