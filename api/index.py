@@ -20,8 +20,7 @@ def get_db_connection():
     try:
         import mysql.connector
         return mysql.connector.connect(**DB_CONFIG)
-    except Exception as e:
-        print("Base de datos no disponible localmente en Vercel:", e)
+    except Exception:
         return None
 
 @app.route('/')
@@ -30,10 +29,10 @@ def index():
 
 @app.route('/api/categorias', methods=['GET'])
 def get_categorias():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify([]), 200
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify([]), 200
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id_categoria AS id, nombre FROM categorias")
         categorias = cursor.fetchall()
@@ -42,14 +41,17 @@ def get_categorias():
         return jsonify(categorias)
     except Exception as e:
         print("Error MySQL Categorias:", e)
+        if conn:
+            try: conn.close()
+            except Exception: pass
         return jsonify([]), 200
 
 @app.route('/api/productos', methods=['GET'])
 def get_productos():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify([]), 200
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify([]), 200
         cursor = conn.cursor(dictionary=True)
         query = """
             SELECT 
@@ -72,14 +74,17 @@ def get_productos():
         return jsonify(productos)
     except Exception as e:
         print("Error MySQL Productos:", e)
+        if conn:
+            try: conn.close()
+            except Exception: pass
         return jsonify([]), 200
 
 @app.route('/api/combos', methods=['GET'])
 def get_combos():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify([]), 200
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify([]), 200
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id_combo AS id, nombre, descripcion, precio FROM combos")
         combos = cursor.fetchall()
@@ -96,6 +101,9 @@ def get_combos():
         return jsonify(combos)
     except Exception as e:
         print("Error MySQL Combos:", e)
+        if conn:
+            try: conn.close()
+            except Exception: pass
         return jsonify([]), 200
 
 @app.route('/api/ventas', methods=['POST'])
@@ -107,12 +115,12 @@ def registrar_venta():
     pago = data.get('pago', {})
     envio = data.get('envio', {})
 
-    try:
-        conn = get_db_connection()
-        if not conn:
-            nro = f"ET-{int(os.urandom(3).hex(), 16)}"
-            return jsonify({'success': True, 'id_venta': 1, 'numero_seguimiento': nro}), 200
+    conn = get_db_connection()
+    if not conn:
+        nro = f"ET-{int(os.urandom(3).hex(), 16)}"
+        return jsonify({'success': True, 'id_venta': 1, 'numero_seguimiento': nro}), 200
 
+    try:
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute("SELECT id_cliente FROM clientes WHERE email = %s", (cliente.get('email'),))
@@ -171,5 +179,8 @@ def registrar_venta():
 
     except Exception as e:
         print("Error MySQL Venta:", e)
+        if conn:
+            try: conn.close()
+            except Exception: pass
         nro = f"ET-{int(os.urandom(3).hex(), 16)}"
         return jsonify({'success': True, 'id_venta': 1, 'numero_seguimiento': nro}), 200
