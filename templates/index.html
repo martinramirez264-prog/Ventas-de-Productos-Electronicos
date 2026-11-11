@@ -286,7 +286,7 @@ let categorias = {
   5: { n: 'Accesorios', i: 'fa-plug' }
 };
 
-// Rutas locales referenciadas desde la carpeta raíz static/img
+// Rutas locales de imágenes apuntando a la carpeta img servida por Flask
 const imagenesRespaldoWeb = {
   // Notebooks
   1: "/img/NOTEBOOKS/Notebook Gamer.jpg",
@@ -315,34 +315,25 @@ const imagenesRespaldoWeb = {
   16: "/img/ACCESORIOS/Funda Protectora Antigolpes.jpg",
   17: "/img/ACCESORIOS/Vidrio Templado 9D.jpg",
   18: "/img/ACCESORIOS/Tarjeta MicroSD 128GB.jpg",
-  19: "/img/ACCESORIOS/Bateria externa de 10000 mAh.jpg"
+  19: "/img/ACCESORIOS/Batería externa de 10000 mAh.jpg"
 };
 
 // Productos ordenados del 1 al 19
 let productos = [
-  // Notebooks (cat: 1)
   { id: 1, nombre: "Notebook Gamer", descripcion: "Notebook de alto rendimiento para trabajo y gaming", marca: "Lenovo", precio: 1500000, stock: 10, garantia: 12, cat: 1, img: imagenesRespaldoWeb[1] },
   { id: 2, nombre: "Notebook HP 15", descripcion: "Laptop ultraligera Intel Core i5 16GB RAM SSD 512GB", marca: "HP", precio: 1150000, stock: 12, garantia: 12, cat: 1, img: imagenesRespaldoWeb[2] },
   { id: 3, nombre: "MacBook Air M2", descripcion: "Laptop Apple Chip M2 pantalla Retina 13.6 pulgadas", marca: "Apple", precio: 2100000, stock: 6, garantia: 12, cat: 1, img: imagenesRespaldoWeb[3] },
-
-  // Celulares (cat: 2)
   { id: 4, nombre: "Celular Redmi A3", descripcion: "Smartphone libre con pantalla fluida de 90Hz", marca: "Xiaomi", precio: 900000, stock: 15, garantia: 12, cat: 2, img: imagenesRespaldoWeb[4] },
   { id: 5, nombre: "Samsung Galaxy A55", descripcion: "Smartphone 5G pantalla Super AMOLED 120Hz 128GB", marca: "Samsung", precio: 750000, stock: 12, garantia: 12, cat: 2, img: imagenesRespaldoWeb[5] },
   { id: 6, nombre: "Motorola Moto G84", descripcion: "Celular libre pantalla OLED 256GB RAM 8GB", marca: "Motorola", precio: 520000, stock: 15, garantia: 12, cat: 2, img: imagenesRespaldoWeb[6] },
   { id: 7, nombre: "iPhone 15 128GB", descripcion: "Pantalla Super Retina XDR Chip A16 Bionic cámara 48MP", marca: "Apple", precio: 1850000, stock: 5, garantia: 12, cat: 2, img: imagenesRespaldoWeb[7] },
-
-  // Monitores (cat: 3)
   { id: 8, nombre: "Monitor Profesional", descripcion: "Monitor IPS 24 pulgadas Full HD", marca: "LG", precio: 500000, stock: 8, garantia: 12, cat: 3, img: imagenesRespaldoWeb[8] },
   { id: 9, nombre: "Monitor Gaming 144Hz", descripcion: "Monitor curvo 27 pulgadas Full HD 1ms Freesync", marca: "Samsung", precio: 680000, stock: 10, garantia: 12, cat: 3, img: imagenesRespaldoWeb[9] },
   { id: 10, nombre: "Monitor UltraWide 34\"", descripcion: "Monitor panorámico 2K para productividad y edición", marca: "LG", precio: 920000, stock: 5, garantia: 12, cat: 3, img: imagenesRespaldoWeb[10] },
-
-  // Periféricos (cat: 4)
   { id: 11, nombre: "Auriculares Inalámbricos TWS", descripcion: "Auriculares Bluetooth 5.3 con estuche de carga", marca: "Xiaomi", precio: 45000, stock: 35, garantia: 12, cat: 4, img: imagenesRespaldoWeb[11] },
   { id: 12, nombre: "Auriculares de Casco (Vincha)", descripcion: "Auriculares Bluetooth con almohadillas acolchadas", marca: "Logitech", precio: 75000, stock: 20, garantia: 12, cat: 4, img: imagenesRespaldoWeb[12] },
   { id: 13, nombre: "Mouse Gamer RGB", descripcion: "Mouse óptico de alta precisión con cable", marca: "Logitech", precio: 80000, stock: 30, garantia: 12, cat: 4, img: imagenesRespaldoWeb[13] },
   { id: 14, nombre: "Mouse Bluetooth Ergonómico", descripcion: "Mouse inalámbrico silencioso para laptop", marca: "Logitech", precio: 38000, stock: 45, garantia: 12, cat: 4, img: imagenesRespaldoWeb[14] },
-
-  // Accesorios (cat: 5)
   { id: 15, nombre: "Cargador Carga Rápida 33W", descripcion: "Cargador de pared de alta velocidad Tipo-C", marca: "Xiaomi", precio: 35000, stock: 40, garantia: 6, cat: 5, img: imagenesRespaldoWeb[15] },
   { id: 16, nombre: "Funda Protectora Antigolpes", descripcion: "Funda de silicona reforzada en esquinas", marca: "Genérica", precio: 25000, stock: 50, garantia: 6, cat: 5, img: imagenesRespaldoWeb[16] },
   { id: 17, nombre: "Vidrio Templado 9D", descripcion: "Protector de pantalla ultra resistente anti-rayaduras", marca: "Genérica", precio: 8000, stock: 100, garantia: 3, cat: 5, img: imagenesRespaldoWeb[17] },
@@ -397,10 +388,9 @@ async function cargarDatosBD() {
         catsData.forEach((c, i) => { categorias[c.id] = { n: c.nombre, i: iconos[i % iconos.length] }; });
         
         productos = prodData.map(pBD => {
-          const esUrlValida = pBD.img && typeof pBD.img === 'string' && pBD.img.trim().startsWith('http');
           return {
             ...pBD,
-            img: esUrlValida ? pBD.img.trim() : imagenesRespaldoWeb[pBD.id]
+            img: (pBD.img && pBD.img.trim()) ? pBD.img : imagenesRespaldoWeb[pBD.id]
           };
         });
         combos = combData;
@@ -446,12 +436,11 @@ function renderProductos() {
                    p.stock <= 10 ? ['stock-low', `¡Quedan ${libre} unidades!`] : ['stock-ok', 'En stock'];
     const catObj = categorias[p.cat] || { i: 'fa-box', n: 'Producto' };
     
-    const esUrlWeb = p.img && typeof p.img === 'string' && p.img.trim().startsWith('http');
-    const rutaImg = esUrlWeb ? p.img.trim() : (imagenesRespaldoWeb[p.id] || "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80");
+    const rutaImg = p.img || imagenesRespaldoWeb[p.id];
 
     return `<div class="col"><article class="product">
       <div class="thumb" aria-hidden="true">
-        <img src="${rutaImg}" alt="${p.nombre}">
+        <img src="${encodeURI(rutaImg)}" alt="${p.nombre}">
       </div>
       <div class="body">
         <span class="brand-tag">${p.marca} · ${catObj.n}</span>

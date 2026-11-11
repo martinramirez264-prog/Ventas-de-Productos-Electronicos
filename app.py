@@ -3,8 +3,9 @@ from flask import Flask, render_template, jsonify, request
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
+STATIC_DIR = os.path.join(BASE_DIR, 'img')
 
-app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=BASE_DIR)
+app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR, static_url_path='/img')
 
 DB_CONFIG = {
     'host': os.getenv('MYSQL_HOST', 'localhost'),
