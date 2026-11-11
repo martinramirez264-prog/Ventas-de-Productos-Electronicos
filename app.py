@@ -1,11 +1,10 @@
 import os
-from flask import Flask, render_template, jsonify, request, send_from_directory
+from flask import Flask, render_template, jsonify, request
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
-IMG_DIR = os.path.join(BASE_DIR, 'img')
 
-app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=IMG_DIR, static_url_path='/img')
+app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=BASE_DIR)
 
 DB_CONFIG = {
     'host': os.getenv('MYSQL_HOST', 'localhost'),
@@ -23,31 +22,34 @@ def get_db_connection():
     except Exception:
         return None
 
+def safe_close(conn, cursor=None):
+    if cursor:
+        try: cursor.close()
+        except Exception: pass
+    if conn:
+        try:
+            if conn.is_connected():
+                conn.close()
+        except Exception: pass
+
 @app.route('/')
 def index():
     return render_template('index.html')
-
-# Servir imágenes locales directamente desde la carpeta img
-@app.route('/img/<path:filename>')
-def servir_imagen(filename):
-    return send_from_directory(IMG_DIR, filename)
 
 @app.route('/api/categorias', methods=['GET'])
 def get_categorias():
     conn = get_db_connection()
     if not conn:
         return jsonify([]), 200
+    cursor = None
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id_categoria AS id, nombre FROM categorias")
         categorias = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        safe_close(conn, cursor)
         return jsonify(categorias)
     except Exception as e:
-        if conn:
-            try: conn.close()
-            except Exception: pass
+        safe_close(conn, cursor)
         return jsonify([]), 200
 
 @app.route('/api/productos', methods=['GET'])
@@ -55,6 +57,7 @@ def get_productos():
     conn = get_db_connection()
     if not conn:
         return jsonify([]), 200
+    cursor = None
     try:
         cursor = conn.cursor(dictionary=True)
         query = """
@@ -73,13 +76,10 @@ def get_productos():
         productos = cursor.fetchall()
         for p in productos:
             p['precio'] = float(p['precio'])
-        cursor.close()
-        conn.close()
+        safe_close(conn, cursor)
         return jsonify(productos)
     except Exception as e:
-        if conn:
-            try: conn.close()
-            except Exception: pass
+        safe_close(conn, cursor)
         return jsonify([]), 200
 
 @app.route('/api/combos', methods=['GET'])
@@ -87,25 +87,26 @@ def get_combos():
     conn = get_db_connection()
     if not conn:
         return jsonify([]), 200
+    cursor = None
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id_combo AS id, nombre, descripcion, precio FROM combos")
         combos = cursor.fetchall()
         for c in combos:
             c['precio'] = float(c['precio'])
-            cursor.execute("""
+            c_cursor = conn.cursor(dictionary=True)
+            c_cursor.execute("""
                 SELECT id_producto AS p, cantidad AS c 
                 FROM detalle_combos 
                 WHERE id_combo = %s
             """, (c['id'],))
-            c['items'] = cursor.fetchall()
-        cursor.close()
-        conn.close()
+            c['items'] = c_cursor.fetchall()
+            try: c_cursor.close()
+            except Exception: pass
+        safe_close(conn, cursor)
         return jsonify(combos)
     except Exception as e:
-        if conn:
-            try: conn.close()
-            except Exception: pass
+        safe_close(conn, cursor)
         return jsonify([]), 200
 
 @app.route('/api/ventas', methods=['POST'])
@@ -122,6 +123,7 @@ def registrar_venta():
         nro = f"ET-{int(os.urandom(3).hex(), 16)}"
         return jsonify({'success': True, 'id_venta': 1, 'numero_seguimiento': nro}), 200
 
+    cursor = None
     try:
         cursor = conn.cursor(dictionary=True)
 
@@ -175,14 +177,11 @@ def registrar_venta():
         """, (id_venta, nro_seguimiento, envio.get('direccion_envio', '')))
 
         conn.commit()
-        cursor.close()
-        conn.close()
+        safe_close(conn, cursor)
         return jsonify({'success': True, 'id_venta': id_venta, 'numero_seguimiento': nro_seguimiento}), 201
 
     except Exception as e:
-        if conn:
-            try: conn.close()
-            except Exception: pass
+        safe_close(conn, cursor)
         nro = f"ET-{int(os.urandom(3).hex(), 16)}"
         return jsonify({'success': True, 'id_venta': 1, 'numero_seguimiento': nro}), 200
 
