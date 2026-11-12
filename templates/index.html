@@ -257,7 +257,11 @@ footer { background: var(--ink); color: #b8c7d1; margin-top: auto; }
             </select>
           </div>
         </div>
-        <div class="d-flex justify-content-between fs-5 mt-4 pt-3 border-top"><span class="fw-bold">Total a pagar</span><span id="checkout-total" class="price"></span></div>
+        <div class="mt-4 pt-3 border-top">
+          <h6 class="fw-bold mb-2">Detalle de tu pedido</h6>
+          <div id="checkout-resumen-items" class="small text-secondary mb-2"></div>
+        </div>
+        <div class="d-flex justify-content-between fs-5 mt-3 pt-3 border-top"><span class="fw-bold">Total a pagar</span><span id="checkout-total" class="price"></span></div>
       </div>
       <div class="modal-footer" id="checkout-footer"><button type="submit" class="btn btn-add px-4" id="btn-confirmar-compra">Confirmar compra</button></div>
     </form>
@@ -357,7 +361,7 @@ const guardar = () => { try { localStorage.setItem('carrito', JSON.stringify(car
 
 function toast(msg) {
   $('toast-msg').textContent = msg;
-  bootstrap.Toast.getOrCreateInstance($('toast'), { delay: 2200 }).show();
+  bootstrap.Toast.getOrCreateInstance($('toast'), { delay: 3000 }).show();
 }
 
 async function cargarDatosBD() {
@@ -493,6 +497,29 @@ function renderCarrito() {
         <button class="btn btn-sm btn-link text-danger justify-self-end text-decoration-none" data-del="${idx}">Quitar</button></div>`;
     }).join('') : '<p class="text-secondary text-center mt-4">Tu carrito está vacío. Agregá productos del catálogo para empezar.</p>';
   }
+
+  if ($('checkout-resumen-items')) {
+    $('checkout-resumen-items').innerHTML = carrito.map(l => {
+      let subitems = '';
+      if (l.tipo === 'c') {
+        const c = combos.find(x => x.id === l.id);
+        if (c && c.items) {
+          const lista = c.items.map(i => {
+            const p = prod(i.p);
+            return p ? `${i.c}× ${p.nombre}` : '';
+          }).filter(Boolean).join(', ');
+          subitems = `<div class="text-muted ms-2" style="font-size:0.78rem;">Incluye: ${lista}</div>`;
+        }
+      }
+      return `<div class="mb-2">
+        <div class="d-flex justify-content-between text-dark">
+          <span>${l.cantidad}× <strong>${l.nombre}</strong></span>
+          <span class="fw-semibold">${money(l.precio * l.cantidad)}</span>
+        </div>
+        ${subitems}
+      </div>`;
+    }).join('');
+  }
   
   if ($('contador-carrito')) $('contador-carrito').textContent = unidades;
   if ($('total-carrito')) $('total-carrito').textContent = money(total);
@@ -575,31 +602,46 @@ $('form-checkout').addEventListener('submit', async e => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(ventaPayload)
     });
+    const resultado = await res.json();
     
-    if (res.ok) {
-      const resultado = await res.json();
-      $('checkout-cuerpo').innerHTML = `<div class="text-center py-4">
-        <i class="fa-solid fa-circle-check fs-1 text-success mb-3"></i>
-        <h4>¡Gracias por tu compra!</h4>
-        <p class="mb-1">Pedido <strong>#${resultado.id_venta}</strong> registrado con seguimiento <strong>${resultado.numero_seguimiento}</strong>.</p>
-        <p class="text-secondary small mb-0">Enviamos el comprobante electrónico a <strong>${emailCliente}</strong>.</p>
+    if (res.ok && resultado.success) {
+      const listaConfirmada = (resultado.detalle || []).map(d =>
+        `<li class="d-flex justify-content-between py-1 border-bottom">
+          <span>${d.cantidad}× ${d.nombre}</span>
+          <strong>${money(d.subtotal)}</strong>
+        </li>`
+      ).join('');
+
+      $('checkout-cuerpo').innerHTML = `<div class="py-2">
+        <div class="text-center mb-3">
+          <i class="fa-solid fa-circle-check fs-1 text-success mb-2"></i>
+          <h4>¡Gracias por tu compra!</h4>
+          <p class="mb-1">Pedido <strong>#${resultado.id_venta}</strong> · Seguimiento: <strong>${resultado.numero_seguimiento}</strong></p>
+          <p class="text-secondary small mb-0">${resultado.email_enviado ? `Comprobante enviado a <strong>${emailCliente}</strong>` : `Registrado a nombre de <strong>${emailCliente}</strong>`}</p>
+        </div>
+        <div class="bg-light rounded p-3 small">
+          <div class="fw-bold mb-2">Detalle confirmado:</div>
+          <ul class="list-unstyled mb-2">${listaConfirmada}</ul>
+          <div class="d-flex justify-content-between fs-6 pt-1">
+            <span class="fw-bold">Total pagado:</span>
+            <span class="fw-bold text-success">${money(total)}</span>
+          </div>
+        </div>
       </div>`;
+      $('checkout-footer').innerHTML = '<button type="button" class="btn btn-add px-4" data-bs-dismiss="modal">Seguir comprando</button>';
+      carrito = [];
+      renderCarrito();
+      cargarDatosBD();
     } else {
-      throw new Error();
+      throw new Error(resultado.error || 'Error al registrar la venta en el servidor');
     }
   } catch(err) {
-    const nro = 'ET-' + Date.now().toString().slice(-6);
-    $('checkout-cuerpo').innerHTML = `<div class="text-center py-4">
-      <i class="fa-solid fa-circle-check fs-1 text-success mb-3"></i>
-      <h4>¡Gracias por tu compra!</h4>
-      <p class="mb-1">Pedido <strong>${nro}</strong> por <strong>${money(total)}</strong>.</p>
-      <p class="text-secondary small mb-0">Procesado con éxito en la aplicación web.</p>
-    </div>`;
+    toast('Error: ' + err.message);
+    if (btnConfirmar) {
+      btnConfirmar.disabled = false;
+      btnConfirmar.innerHTML = 'Confirmar compra';
+    }
   }
-  
-  $('checkout-footer').innerHTML = '<button type="button" class="btn btn-add px-4" data-bs-dismiss="modal">Seguir comprando</button>';
-  carrito = [];
-  renderCarrito();
 });
 
 cargarDatosBD();
