@@ -1,4 +1,7 @@
 import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from flask import Flask, render_template, jsonify, request
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +35,84 @@ def safe_close(conn, cursor=None):
                 conn.close()
         except Exception: pass
 
+def enviar_comprobante_email(destinatario, nombre_completo, id_venta, nro_seguimiento, total, items_resumen, metodo_pago, direccion_envio):
+    remitente = os.getenv('SMTP_EMAIL')
+    password = os.getenv('SMTP_PASSWORD')
+
+    if not remitente or not password or not destinatario:
+        return False
+
+    filas_html = ""
+    for item in items_resumen:
+        filas_html += f"""
+        <tr>
+            <td style="padding: 12px 10px; border-bottom: 1px solid #1e293b; color: #e2e8f0; font-size: 14px;">
+                {item['nombre']} <span style="color: #94a3b8;">(x{item['cantidad']})</span>
+            </td>
+            <td style="padding: 12px 10px; border-bottom: 1px solid #1e293b; color: #38bdf8; text-align: right; font-weight: bold; font-size: 14px;">
+                ${item['subtotal']:,.2f}
+            </td>
+        </tr>
+        """
+
+    html_cuerpo = f"""
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 20px auto; background-color: #0f172a; color: #f8fafc; border-radius: 14px; overflow: hidden; border: 1px solid #1e293b;">
+        <div style="background: linear-gradient(135deg, #0284c7, #1d4ed8); padding: 28px 24px; text-align: center;">
+            <h1 style="margin: 0; font-size: 26px; letter-spacing: 1.5px; color: #ffffff;">⚡ ELECTROTECH</h1>
+            <p style="margin: 8px 0 0; font-size: 15px; color: #e0f2fe; font-weight: 500;">¡Tu compra fue procesada con éxito!</p>
+        </div>
+        
+        <div style="padding: 28px 24px;">
+            <p style="font-size: 16px; margin-top: 0; color: #f8fafc;">Hola <strong>{nombre_completo}</strong>,</p>
+            <p style="color: #cbd5e1; line-height: 1.6; font-size: 14px;">
+                Confirmamos la recepción de tu pago. Ya estamos preparando tu pedido en nuestro centro logístico para despacharlo a la brevedad.
+            </p>
+            
+            <div style="background-color: #1e293b; border-radius: 10px; padding: 16px 20px; margin: 22px 0; border-left: 4px solid #38bdf8;">
+                <p style="margin: 5px 0; font-size: 14px; color: #e2e8f0;"><strong>Orden de Compra:</strong> #{id_venta}</p>
+                <p style="margin: 5px 0; font-size: 14px; color: #e2e8f0;"><strong>Código de Seguimiento:</strong> <span style="color: #38bdf8; font-family: monospace; font-size: 15px; background: #0f172a; padding: 2px 6px; border-radius: 4px;">{nro_seguimiento}</span></p>
+                <p style="margin: 5px 0; font-size: 14px; color: #e2e8f0;"><strong>Método de Pago:</strong> {metodo_pago} (<span style="color: #4ade80;">Aprobado</span>)</p>
+                <p style="margin: 5px 0; font-size: 14px; color: #e2e8f0;"><strong>Dirección de Entrega:</strong> {direccion_envio or 'Retiro / A coordinar'}</p>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; margin-top: 18px;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; padding: 10px; border-bottom: 2px solid #334155; color: #94a3b8; font-size: 12px; letter-spacing: 0.5px;">PRODUCTO / COMBO</th>
+                        <th style="text-align: right; padding: 10px; border-bottom: 2px solid #334155; color: #94a3b8; font-size: 12px; letter-spacing: 0.5px;">SUBTOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {filas_html}
+                </tbody>
+            </table>
+
+            <div style="text-align: right; margin-top: 20px; padding-top: 14px; border-top: 1px solid #334155; font-size: 18px; color: #f8fafc;">
+                <strong>Total Pagado: <span style="color: #4ade80;">${float(total):,.2f}</span></strong>
+            </div>
+        </div>
+
+        <div style="background-color: #020617; padding: 18px; text-align: center; font-size: 12px; color: #64748b; line-height: 1.5;">
+            Gracias por elegir <strong>ElectroTech</strong>.<br>
+            Comprobante electrónico generado automáticamente • Buenos Aires, Argentina.
+        </div>
+    </div>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"✅ ¡Compra #{id_venta} confirmada! - ElectroTech"
+    msg["From"] = f"ElectroTech Store <{remitente}>"
+    msg["To"] = destinatario
+    msg.attach(MIMEText(html_cuerpo, "html"))
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=8) as server:
+            server.login(remitente, password)
+            server.sendmail(remitente, destinatario, msg.as_string())
+        return True
+    except Exception:
+        return False
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -48,7 +129,7 @@ def get_categorias():
         categorias = cursor.fetchall()
         safe_close(conn, cursor)
         return jsonify(categorias)
-    except Exception as e:
+    except Exception:
         safe_close(conn, cursor)
         return jsonify([]), 200
 
@@ -78,7 +159,7 @@ def get_productos():
             p['precio'] = float(p['precio'])
         safe_close(conn, cursor)
         return jsonify(productos)
-    except Exception as e:
+    except Exception:
         safe_close(conn, cursor)
         return jsonify([]), 200
 
@@ -105,7 +186,7 @@ def get_combos():
             except Exception: pass
         safe_close(conn, cursor)
         return jsonify(combos)
-    except Exception as e:
+    except Exception:
         safe_close(conn, cursor)
         return jsonify([]), 200
 
@@ -118,16 +199,27 @@ def registrar_venta():
     pago = data.get('pago', {})
     envio = data.get('envio', {})
 
+    nombre_cliente = f"{cliente.get('nombre', '')} {cliente.get('apellido', '')}".strip() or "Cliente"
+    email_cliente = cliente.get('email', '')
+    metodo_pago = pago.get('metodo', 'Mercado Pago')
+    direccion_envio = envio.get('direccion_envio', '')
+
     conn = get_db_connection()
     if not conn:
         nro = f"ET-{int(os.urandom(3).hex(), 16)}"
+        items_fallback = [{
+            'nombre': item.get('nombre', f"Artículo #{item.get('id', '')}"),
+            'cantidad': item.get('cantidad', 1),
+            'subtotal': float(item.get('precio_unitario', 0)) * int(item.get('cantidad', 1))
+        } for item in detalles]
+        enviar_comprobante_email(email_cliente, nombre_cliente, 1, nro, total, items_fallback, metodo_pago, direccion_envio)
         return jsonify({'success': True, 'id_venta': 1, 'numero_seguimiento': nro}), 200
 
     cursor = None
     try:
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("SELECT id_cliente FROM clientes WHERE email = %s", (cliente.get('email'),))
+        cursor.execute("SELECT id_cliente FROM clientes WHERE email = %s", (email_cliente,))
         cliente_existente = cursor.fetchone()
 
         if cliente_existente:
@@ -136,7 +228,7 @@ def registrar_venta():
             cursor.execute("""
                 INSERT INTO clientes (nombre, apellido, email, tipo_cliente, direccion)
                 VALUES (%s, %s, %s, 'Usuario Final', %s)
-            """, (cliente.get('nombre'), cliente.get('apellido'), cliente.get('email'), envio.get('direccion_envio', '')))
+            """, (cliente.get('nombre'), cliente.get('apellido'), email_cliente, direccion_envio))
             id_cliente = cursor.lastrowid
 
         cursor.execute("""
@@ -145,42 +237,81 @@ def registrar_venta():
         """, (id_cliente, total))
         id_venta = cursor.lastrowid
 
+        items_resumen = []
+
         for item in detalles:
+            cant = int(item.get('cantidad', 1))
+            precio_u = float(item.get('precio_unitario', 0))
+
             if item.get('tipo') == 'p':
+                cursor.execute("SELECT nombre FROM productos WHERE id_producto = %s", (item['id'],))
+                prod_row = cursor.fetchone()
+                nombre_art = prod_row['nombre'] if prod_row else item.get('nombre', f"Producto #{item['id']}")
+
                 cursor.execute("""
                     INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, precio_unitario)
                     VALUES (%s, %s, %s, %s)
-                """, (id_venta, item['id'], item['cantidad'], item['precio_unitario']))
+                """, (id_venta, item['id'], cant, precio_u))
                 cursor.execute("""
                     UPDATE productos SET stock = stock - %s WHERE id_producto = %s
-                """, (item['cantidad'], item['id']))
+                """, (cant, item['id']))
+
+                items_resumen.append({
+                    'nombre': nombre_art,
+                    'cantidad': cant,
+                    'subtotal': precio_u * cant
+                })
+
             elif item.get('tipo') == 'c':
+                cursor.execute("SELECT nombre FROM combos WHERE id_combo = %s", (item['id'],))
+                combo_row = cursor.fetchone()
+                nombre_art = combo_row['nombre'] if combo_row else item.get('nombre', f"Combo #{item['id']}")
+
                 cursor.execute("""
                     SELECT id_producto, cantidad FROM detalle_combos WHERE id_combo = %s
                 """, (item['id'],))
                 productos_combo = cursor.fetchall()
                 for pc in productos_combo:
-                    cant_total = pc['cantidad'] * item['cantidad']
+                    cant_total = pc['cantidad'] * cant
                     cursor.execute("""
                         UPDATE productos SET stock = stock - %s WHERE id_producto = %s
                     """, (cant_total, pc['id_producto']))
 
+                items_resumen.append({
+                    'nombre': nombre_art,
+                    'cantidad': cant,
+                    'subtotal': precio_u * cant
+                })
+
         cursor.execute("""
             INSERT INTO pagos (id_venta, metodo, monto, estado)
             VALUES (%s, %s, %s, 'Aprobado')
-        """, (id_venta, pago.get('metodo', 'Mercado Pago'), total))
+        """, (id_venta, metodo_pago, total))
 
         nro_seguimiento = f"AR{id_venta:08d}"
         cursor.execute("""
             INSERT INTO envios (id_venta, empresa_logistica, numero_seguimiento, direccion_envio, estado)
             VALUES (%s, 'Logística Express', %s, %s, 'Preparando')
-        """, (id_venta, nro_seguimiento, envio.get('direccion_envio', '')))
+        """, (id_venta, nro_seguimiento, direccion_envio))
 
         conn.commit()
         safe_close(conn, cursor)
+
+        # Enviar correo de confirmación profesional al Gmail del cliente
+        enviar_comprobante_email(
+            destinatario=email_cliente,
+            nombre_completo=nombre_cliente,
+            id_venta=id_venta,
+            nro_seguimiento=nro_seguimiento,
+            total=total,
+            items_resumen=items_resumen,
+            metodo_pago=metodo_pago,
+            direccion_envio=direccion_envio
+        )
+
         return jsonify({'success': True, 'id_venta': id_venta, 'numero_seguimiento': nro_seguimiento}), 201
 
-    except Exception as e:
+    except Exception:
         safe_close(conn, cursor)
         nro = f"ET-{int(os.urandom(3).hex(), 16)}"
         return jsonify({'success': True, 'id_venta': 1, 'numero_seguimiento': nro}), 200
