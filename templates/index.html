@@ -259,7 +259,7 @@ footer { background: var(--ink); color: #b8c7d1; margin-top: auto; }
         </div>
         <div class="d-flex justify-content-between fs-5 mt-4 pt-3 border-top"><span class="fw-bold">Total a pagar</span><span id="checkout-total" class="price"></span></div>
       </div>
-      <div class="modal-footer"><button type="submit" class="btn btn-add px-4">Confirmar compra</button></div>
+      <div class="modal-footer" id="checkout-footer"><button type="submit" class="btn btn-add px-4" id="btn-confirmar-compra">Confirmar compra</button></div>
     </form>
   </div>
 </div>
@@ -277,7 +277,9 @@ const $ = id => document.getElementById(id);
 const money = n => '$' + n.toLocaleString('es-AR');
 const prod = id => productos.find(p => p.id === id);
 
-// Categorías
+const checkoutCuerpoInicial = $('checkout-cuerpo').innerHTML;
+const checkoutFooterInicial = $('checkout-footer').innerHTML;
+
 let categorias = {
   1: { n: 'Notebooks', i: 'fa-laptop' },
   2: { n: 'Celulares', i: 'fa-mobile-screen' },
@@ -286,7 +288,6 @@ let categorias = {
   5: { n: 'Accesorios', i: 'fa-plug' }
 };
 
-// URLs Web en HD directo correspondientes exactamente a cada producto
 const imagenesRespaldoWeb = {
   1: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600&auto=format&fit=crop&q=80",
   2: "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&auto=format&fit=crop&q=80",
@@ -305,10 +306,8 @@ const imagenesRespaldoWeb = {
   15: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&auto=format&fit=crop&q=80",
   16: "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=600&auto=format&fit=crop&q=80",
   17: "https://images.unsplash.com/photo-1605236453806-6ff36851218e?w=600&auto=format&fit=crop&q=80",
-  // Imagen correcta de Tarjeta MicroSD (SanDisk / Memoria):
-  // Reemplazá el ID 18 y el ID 19 por estas URLs reales:
-18: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=600&auto=format&fit=crop&q=80",
-19: "https://assets.altaventa.cl/sherpa/daa27163-8976-11ef-8ba9-5600051be640.jpeg"
+  18: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=600&auto=format&fit=crop&q=80",
+  19: "https://assets.altaventa.cl/sherpa/daa27163-8976-11ef-8ba9-5600051be640.jpeg"
 };
 
 let productos = [
@@ -429,7 +428,6 @@ function renderProductos() {
                    p.stock <= 10 ? ['stock-low', `¡Quedan ${libre} unidades!`] : ['stock-ok', 'En stock'];
     const catObj = categorias[p.cat] || { i: 'fa-box', n: 'Producto' };
     
-    // Forzamos la asignación de URLs directas eliminando cualquier referencia a /img/
     const esUrlWebValida = p.img && typeof p.img === 'string' && p.img.trim().startsWith('http');
     const rutaImg = esUrlWebValida ? p.img.trim() : (imagenesRespaldoWeb[p.id] || "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80");
 
@@ -485,20 +483,22 @@ function renderCombos() {
 
 function renderCarrito() {
   let total = 0, unidades = 0;
-  $('items-carrito').innerHTML = carrito.length ? carrito.map((l, idx) => {
-    total += l.precio * l.cantidad; unidades += l.cantidad;
-    return `<div class="cart-line">
-      <div><strong>${l.nombre}</strong><div class="small text-secondary">${money(l.precio)} c/u</div></div>
-      <div class="price text-end">${money(l.precio * l.cantidad)}</div>
-      <div class="qty"><button data-q="-1" data-i="${idx}" aria-label="Quitar uno">−</button><span>${l.cantidad}</span><button data-q="1" data-i="${idx}" aria-label="Agregar uno">+</button></div>
-      <button class="btn btn-sm btn-link text-danger justify-self-end text-decoration-none" data-del="${idx}">Quitar</button></div>`;
-  }).join('') : '<p class="text-secondary text-center mt-4">Tu carrito está vacío. Agregá productos del catálogo para empezar.</p>';
+  if ($('items-carrito')) {
+    $('items-carrito').innerHTML = carrito.length ? carrito.map((l, idx) => {
+      total += l.precio * l.cantidad; unidades += l.cantidad;
+      return `<div class="cart-line">
+        <div><strong>${l.nombre}</strong><div class="small text-secondary">${money(l.precio)} c/u</div></div>
+        <div class="price text-end">${money(l.precio * l.cantidad)}</div>
+        <div class="qty"><button data-q="-1" data-i="${idx}" aria-label="Quitar uno">−</button><span>${l.cantidad}</span><button data-q="1" data-i="${idx}" aria-label="Agregar uno">+</button></div>
+        <button class="btn btn-sm btn-link text-danger justify-self-end text-decoration-none" data-del="${idx}">Quitar</button></div>`;
+    }).join('') : '<p class="text-secondary text-center mt-4">Tu carrito está vacío. Agregá productos del catálogo para empezar.</p>';
+  }
   
-  $('contador-carrito').textContent = unidades;
-  $('total-carrito').textContent = money(total);
-  $('checkout-total').textContent = money(total);
-  $('btn-pagar').disabled = !carrito.length;
-  $('btn-vaciar').classList.toggle('d-none', !carrito.length);
+  if ($('contador-carrito')) $('contador-carrito').textContent = unidades;
+  if ($('total-carrito')) $('total-carrito').textContent = money(total);
+  if ($('checkout-total')) $('checkout-total').textContent = money(total);
+  if ($('btn-pagar')) $('btn-pagar').disabled = !carrito.length;
+  if ($('btn-vaciar')) $('btn-vaciar').classList.toggle('d-none', !carrito.length);
   guardar(); renderProductos(); renderCombos();
 }
 
@@ -539,18 +539,34 @@ $('buscador').addEventListener('input', e => { filtro.texto = e.target.value.tri
 $('orden').addEventListener('change', e => { filtro.orden = e.target.value; renderProductos(); });
 $('btn-vaciar').addEventListener('click', () => { carrito = []; renderCarrito(); });
 
+$('btn-pagar').addEventListener('click', () => {
+  if (!$('checkout-total')) {
+    $('checkout-cuerpo').innerHTML = checkoutCuerpoInicial;
+    $('checkout-footer').innerHTML = checkoutFooterInicial;
+    $('form-checkout').classList.remove('was-validated');
+    renderCarrito();
+  }
+});
+
 $('form-checkout').addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.target;
   if (!form.checkValidity()) { form.classList.add('was-validated'); toast('Completá todos los campos para continuar.'); return; }
 
+  const btnConfirmar = $('btn-confirmar-compra');
+  if (btnConfirmar) {
+    btnConfirmar.disabled = true;
+    btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+  }
+
   const total = carrito.reduce((t, l) => t + l.precio * l.cantidad, 0);
+  const emailCliente = $('f-email').value.trim();
   const ventaPayload = {
-    cliente: { nombre: $('f-nombre').value, apellido: $('f-apellido').value, email: $('f-email').value },
+    cliente: { nombre: $('f-nombre').value.trim(), apellido: $('f-apellido').value.trim(), email: emailCliente },
     total: total,
-    detalle: carrito.map(l => ({ tipo: l.tipo, id: l.id, cantidad: l.cantidad, precio_unitario: l.precio })),
+    detalle: carrito.map(l => ({ tipo: l.tipo, id: l.id, nombre: l.nombre, cantidad: l.cantidad, precio_unitario: l.precio })),
     pago: { metodo: $('f-metodo').value },
-    envio: { direccion_envio: $('f-direccion').value }
+    envio: { direccion_envio: $('f-direccion').value.trim() }
   };
 
   try {
@@ -566,7 +582,7 @@ $('form-checkout').addEventListener('submit', async e => {
         <i class="fa-solid fa-circle-check fs-1 text-success mb-3"></i>
         <h4>¡Gracias por tu compra!</h4>
         <p class="mb-1">Pedido <strong>#${resultado.id_venta}</strong> registrado con seguimiento <strong>${resultado.numero_seguimiento}</strong>.</p>
-        <p class="text-secondary small">Guardado en la base de datos MySQL.</p>
+        <p class="text-secondary small mb-0">Enviamos el comprobante electrónico a <strong>${emailCliente}</strong>.</p>
       </div>`;
     } else {
       throw new Error();
@@ -577,11 +593,11 @@ $('form-checkout').addEventListener('submit', async e => {
       <i class="fa-solid fa-circle-check fs-1 text-success mb-3"></i>
       <h4>¡Gracias por tu compra!</h4>
       <p class="mb-1">Pedido <strong>${nro}</strong> por <strong>${money(total)}</strong>.</p>
-      <p class="text-secondary small">Procesado con éxito en la aplicación web.</p>
+      <p class="text-secondary small mb-0">Procesado con éxito en la aplicación web.</p>
     </div>`;
   }
   
-  form.querySelector('.modal-footer').innerHTML = '<button type="button" class="btn btn-add px-4" data-bs-dismiss="modal">Seguir comprando</button>';
+  $('checkout-footer').innerHTML = '<button type="button" class="btn btn-add px-4" data-bs-dismiss="modal">Seguir comprando</button>';
   carrito = [];
   renderCarrito();
 });
