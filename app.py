@@ -15,14 +15,15 @@ DB_CONFIG = {
     'password': os.getenv('MYSQL_PASSWORD', ''),
     'database': os.getenv('MYSQL_DATABASE', 'venta_productos_electronicos'),
     'port': int(os.getenv('MYSQL_PORT', 3306)),
-    'connect_timeout': 2
+    'connect_timeout': 3
 }
 
 def get_db_connection():
     try:
         import mysql.connector
         return mysql.connector.connect(**DB_CONFIG)
-    except Exception:
+    except Exception as e:
+        print(f"[DB ERROR] No se pudo conectar a MySQL: {e}")
         return None
 
 def safe_close(conn, cursor=None):
@@ -36,10 +37,11 @@ def safe_close(conn, cursor=None):
         except Exception: pass
 
 def enviar_comprobante_email(destinatario, nombre_completo, id_venta, nro_seguimiento, total, items_resumen, metodo_pago, direccion_envio):
-    remitente = os.getenv('SMTP_EMAIL')
-    password = os.getenv('SMTP_PASSWORD')
+    remitente = (os.getenv('SMTP_EMAIL') or '').strip()
+    password = (os.getenv('SMTP_PASSWORD') or '').replace(' ', '').strip()
 
     if not remitente or not password or not destinatario:
+        print(f"[SMTP ERROR] Faltan datos -> remitente: {bool(remitente)}, pass: {bool(password)}, dest: '{destinatario}'")
         return False
 
     filas_html = ""
@@ -106,11 +108,13 @@ def enviar_comprobante_email(destinatario, nombre_completo, id_venta, nro_seguim
     msg.attach(MIMEText(html_cuerpo, "html"))
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=8) as server:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as server:
             server.login(remitente, password)
             server.sendmail(remitente, destinatario, msg.as_string())
+        print(f"[SMTP OK] Correo enviado correctamente a {destinatario}")
         return True
-    except Exception:
+    except Exception as e:
+        print(f"[SMTP ERROR] Fallo al enviar a {destinatario}: {e}")
         return False
 
 @app.route('/')
@@ -200,18 +204,19 @@ def registrar_venta():
     envio = data.get('envio', {})
 
     nombre_cliente = f"{cliente.get('nombre', '')} {cliente.get('apellido', '')}".strip() or "Cliente"
-    email_cliente = cliente.get('email', '')
+    email_cliente = (cliente.get('email') or '').strip()
     metodo_pago = pago.get('metodo', 'Mercado Pago')
     direccion_envio = envio.get('direccion_envio', '')
+
+    items_fallback = [{
+        'nombre': item.get('nombre', f"Artículo #{item.get('id', '')}"),
+        'cantidad': item.get('cantidad', 1),
+        'subtotal': float(item.get('precio_unitario', 0)) * int(item.get('cantidad', 1))
+    } for item in detalles]
 
     conn = get_db_connection()
     if not conn:
         nro = f"ET-{int(os.urandom(3).hex(), 16)}"
-        items_fallback = [{
-            'nombre': item.get('nombre', f"Artículo #{item.get('id', '')}"),
-            'cantidad': item.get('cantidad', 1),
-            'subtotal': float(item.get('precio_unitario', 0)) * int(item.get('cantidad', 1))
-        } for item in detalles]
         enviar_comprobante_email(email_cliente, nombre_cliente, 1, nro, total, items_fallback, metodo_pago, direccion_envio)
         return jsonify({'success': True, 'id_venta': 1, 'numero_seguimiento': nro}), 200
 
@@ -297,7 +302,6 @@ def registrar_venta():
         conn.commit()
         safe_close(conn, cursor)
 
-        # Enviar correo de confirmación profesional al Gmail del cliente
         enviar_comprobante_email(
             destinatario=email_cliente,
             nombre_completo=nombre_cliente,
@@ -311,9 +315,11 @@ def registrar_venta():
 
         return jsonify({'success': True, 'id_venta': id_venta, 'numero_seguimiento': nro_seguimiento}), 201
 
-    except Exception:
+    except Exception as e:
+        print(f"[VENTAS ERROR] Excepcion en transaccion SQL: {e}")
         safe_close(conn, cursor)
         nro = f"ET-{int(os.urandom(3).hex(), 16)}"
+        enviar_comprobante_email(email_cliente, nombre_cliente, 1, nro, total, items_fallback, metodo_pago, direccion_envio)
         return jsonify({'success': True, 'id_venta': 1, 'numero_seguimiento': nro}), 200
 
 if __name__ == '__main__':
